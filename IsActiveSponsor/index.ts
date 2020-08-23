@@ -20,6 +20,14 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
 
     // Get user token from the HTTP POST or GET
     const userToken = (req.query.token || (req.body && req.body.token));
+    if(userToken === undefined || userToken === null){
+      context.res = {
+        status: 400,
+        body: "Please pass a 'token' on the query string or in the request body"
+      };
+      context.done();
+    }
+
     const graphqlWithAuth = graphql.defaults({
         headers: {
           authorization: `token ${userToken}`,
