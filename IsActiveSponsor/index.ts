@@ -50,7 +50,7 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
               organization(login: "${orgToCheck}") {
                 viewerIsAMember
               }
-              sponsorshipsAsSponsor(first: 1, after: "${pageCursor}") {
+              sponsorshipsAsSponsor(first: 100, after: "${pageCursor}") {
                 pageInfo {
                   hasNextPage
                   endCursor
