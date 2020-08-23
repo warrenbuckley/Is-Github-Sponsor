@@ -12,11 +12,21 @@ interface GithubSponsor {
 const httpTrigger: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
 
     // The user to check if they are sponsoring
-    const userToCheck = "warrenbuckley";
+    const userToCheck = process.env.GITHUB_SPONSOR_USER_TO_VERIFY;
 
     // The organization that a user can be a member of
     // You may want a company/org who can get access without being a sponsor
-    const orgToCheck = "umbraco";
+    const orgToCheck = process.env.GITHUB_ORG_TO_VERIFY;
+
+    if(userToCheck === undefined || orgToCheck === undefined){
+      context.res = {
+        status: 400,
+        body: "Please ensure environment variables 'GITHUB_SPONSOR_USER_TO_VERIFY' & 'GITHUB_ORG_TO_VERIFY' are set"
+      };
+      context.done();
+    }
+
+    var foo = 5;
 
     // Get user token from the HTTP POST or GET
     const userToken = (req.query.token || (req.body && req.body.token));
@@ -108,6 +118,7 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
 
       // Does the list of all sponsors contain 'Warrenbuckley' ?
       else {
+        context.log.info(`The user ${login} is sponsoring ${sponsors.length} people`);
         isSponsor = sponsors.findIndex(sponsor => sponsor.login === userToCheck) > 0;
       }
 
