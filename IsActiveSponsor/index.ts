@@ -26,8 +26,6 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
       context.done();
     }
 
-    var foo = 5;
-
     // Get user token from the HTTP POST or GET
     const userToken = (req.query.token || (req.body && req.body.token));
     if(userToken === undefined || userToken === null){
