@@ -5,7 +5,7 @@ This function could be used to help introduce some sponsorware to your software 
 
 It runs the following GraphQL query & returns a JSON result if the logged in GitHub user with a token sent to the API endpoint is a valid sponsor.
 
-### Sponsorware
+## Sponsorware
 <a href="https://github.com/sponsors/warrenbuckley"><img src="https://github.githubassets.com/images/modules/site/sponsors/pixel-mona-heart.gif" align="left" height="45" /></a>
 If you find it useful to yourself or your business then to check if you have a valid GitHub user as a sponsor then <a href="https://github.com/sponsors/warrenbuckley">I would love you to consider sponsoring me on Github</a> please
 
@@ -14,6 +14,8 @@ If you find it useful to yourself or your business then to check if you have a v
 ✔️ Is the user a member of an organisation - that you want to allow all members of to have access <br/>
 ✔️ Check all sponsors of the logged in user to see if they are an active sponsor <br/>
 
+### Example Request URL
+https://warren-buckley.co.uk/IsActiveSponsor?token=GH_TOKEN
 
 ### GraphQL
 ```json{
