@@ -81,10 +81,6 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
         login = graphql.viewer.login;
         isOrgMember = graphql.viewer.organization.viewerIsAMember;
 
-        // Set some logging - so we have some common properties for all log messages sent
-        context.traceContext.attributes["githubUser"] = login;
-        context.traceContext.attributes["githubUserIsInOrg"] = isOrgMember.toString();
-
         // Add all sponsors to the array
         graphql.viewer.sponsorshipsAsSponsor.nodes.forEach(sponsor => {
           sponsors.push({
