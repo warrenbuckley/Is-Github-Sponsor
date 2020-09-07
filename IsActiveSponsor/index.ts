@@ -8,6 +8,11 @@ interface GithubSponsor {
   login:string;
 }
 
+interface GithubRepo {
+  name:string;
+  nameWithOwner:string;
+}
+
 // Azure Function HTTP Trigger entry point
 const httpTrigger: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
 
@@ -18,10 +23,14 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
     // You may want a company/org who can get access without being a sponsor
     const orgToCheck = process.env.GITHUB_ORG_TO_VERIFY;
 
-    if(userToCheck === undefined || orgToCheck === undefined){
+    // The repo with the owner such as 'warrenbuckley/iis-express-code'
+    // This is used to check if the logged in GitHub user has made a contribution to the repo
+    const repoToCheckForContribs = process.env.GITHUB_REPO_HAS_CONTRIBS;
+
+    if(userToCheck === undefined || orgToCheck === undefined || repoToCheckForContribs === undefined){
       context.res = {
         status: 400,
-        body: "Please ensure environment variables 'GITHUB_SPONSOR_USER_TO_VERIFY' & 'GITHUB_ORG_TO_VERIFY' are set"
+        body: "Please ensure environment variables 'GITHUB_SPONSOR_USER_TO_VERIFY' & 'GITHUB_ORG_TO_VERIFY' & 'GITHUB_REPO_HAS_CONTRIBS' are set"
       };
       context.done();
     }
@@ -44,58 +53,125 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
 
     try {
       let sponsors:Array<GithubSponsor> = [];
-      let hasMorePages:boolean = false;
-      let pageCursor:string = "";
+      let hasMoreSponsorPages:boolean = false;
+      let sponsorPageCursor:string = "";
+      let totalSponsors:number;
+
+      let repos:Array<GithubRepo> = [];
+      let hasMoreRepoPages:boolean = false;
+      let repoPageCursor:string = "";
+      let totalRepos:number;
+
 
       let login:string = "";
       let isOrgMember:boolean = false;
 
-      do {
-        const graphql:GraphQlQueryResponseData = await graphqlWithAuth(`
-        {
-            viewer {
-              login
-              organization(login: "${orgToCheck}") {
-                viewerIsAMember
-              }
-              sponsorshipsAsSponsor(first: 100, after: "${pageCursor}") {
-                pageInfo {
-                  hasNextPage
-                  endCursor
-                }
-                nodes {
-                  sponsorable {
-                    __typename
-                    ... on User {
-                      login
-                      name
-                    }
-                  }
+      let rawQuery:string = `
+      query isUserASponsor($afterRepo: String, $afterSponsor: String, $orgToCheck: String!) {
+        viewer {
+          login
+          organization(login: $orgToCheck) {
+            viewerIsAMember
+          }
+          repositoriesContributedTo(first: 100, after: $afterRepo, contributionTypes: [COMMIT]) {
+            nodes {
+              name
+              nameWithOwner
+            }
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            totalCount
+          }
+          sponsorshipsAsSponsor(first: 100, after: $afterSponsor) {
+            nodes {
+              sponsorable {
+                __typename
+                ... on User {
+                  login
+                  name
                 }
               }
             }
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            totalCount
+          }
         }
-        `);
+      }`;
+
+      // Variables object to use in GraphQl query
+      // We always need to send the orgToCheck variable to our query as its non nullable
+      let variables:any = {
+        orgToCheck: orgToCheck
+      };
+
+      do {
+        // For first query we do not need to send page cursors in
+        if(sponsorPageCursor){
+          variables.afterSponsor = sponsorPageCursor;
+        }
+        if(repoPageCursor){
+          variables.afterRepo = repoPageCursor;
+        }
+
+        // Go send the query to GitHub GraphQL
+        const query:GraphQlQueryResponseData = await graphqlWithAuth(rawQuery, variables);
 
         // Who is this ?
-        login = graphql.viewer.login;
-        isOrgMember = graphql.viewer.organization.viewerIsAMember;
+        login = query.viewer.login;
+
+        // If the org does not exist then the viewerIsAMember can be null
+        isOrgMember = query.viewer.organization?.viewerIsAMember ? query.viewer.organization?.viewerIsAMember : false;
 
         // Add all sponsors to the array
-        graphql.viewer.sponsorshipsAsSponsor.nodes.forEach(sponsor => {
-          sponsors.push({
-            name: sponsor.sponsorable.name,
-            login: sponsor.sponsorable.login
-          })
+        query.viewer.sponsorshipsAsSponsor.nodes.forEach(sponsor => {
+          // Ensure unique items added to array only
+          const tryFindSponsor = sponsors.findIndex(x => x.name === sponsor.sponsorable.name && x.login === sponsor.sponsorable.login);
+          if(tryFindSponsor === -1){
+            sponsors.push({
+              name: sponsor.sponsorable.name,
+              login: sponsor.sponsorable.login
+            });
+          }
+        });
+
+        // Add all repos to the array
+        query.viewer.repositoriesContributedTo.nodes.forEach(repo => {
+          // Ensure unique items added to array only
+          const tryFindRepo = repos.findIndex(x => x.name === repo.name && x.nameWithOwner === repo.nameWithOwner);
+          if(tryFindRepo === -1){
+            repos.push({
+              name: repo.name,
+              nameWithOwner: repo.nameWithOwner
+            });
+          }
         });
 
         // Check if the response tells us it has more pages to fetch
-        hasMorePages = graphql.viewer.sponsorshipsAsSponsor.pageInfo.hasNextPage;
-        pageCursor = graphql.viewer.sponsorshipsAsSponsor.pageInfo.endCursor;
+        hasMoreSponsorPages = query.viewer.sponsorshipsAsSponsor.pageInfo.hasNextPage;
+        sponsorPageCursor = query.viewer.sponsorshipsAsSponsor.pageInfo.endCursor;
+        totalSponsors = query.viewer.sponsorshipsAsSponsor.totalCount;
 
-      } while (hasMorePages);
+        hasMoreRepoPages = query.viewer.repositoriesContributedTo.pageInfo.hasNextPage;
+        repoPageCursor = query.viewer.repositoriesContributedTo.pageInfo.endCursor;
+        totalRepos = query.viewer.repositoriesContributedTo.totalCount;
+
+      } while (hasMoreSponsorPages || hasMoreRepoPages);
 
       let isSponsor = false;
+
+      // Verify totals
+      if(sponsors.length !== totalSponsors){
+        context.log.warn("The number of sponsors in the array does not match the total expected from query");
+      }
+
+      if(repos.length !== totalRepos){
+        context.log.warn("The number of repos in the array does not match the total expected from query");
+      }
 
       // Is the user yourself ?
       const isYourself = login.toLocaleLowerCase() === userToCheck;
@@ -110,10 +186,16 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
         isSponsor = true;
       }
 
+      // Does the list of contrib repos contain our repo ?
+      else if(repos.findIndex(repo => repo.nameWithOwner.toLocaleLowerCase() === repoToCheckForContribs) > 0) {
+        context.log.info(`The user ${login} has made a commit contrib to ${repoToCheckForContribs}`);
+        isSponsor = true;
+      }
+
       // Does the list of all sponsors contain 'Warrenbuckley' ?
       else {
         context.log.info(`The user ${login} is sponsoring ${sponsors.length} people`);
-        isSponsor = sponsors.findIndex(sponsor => sponsor.login === userToCheck) > 0;
+        isSponsor = sponsors.findIndex(sponsor => sponsor.login.toLocaleLowerCase() === userToCheck) > 0;
       }
 
       context.res = {
