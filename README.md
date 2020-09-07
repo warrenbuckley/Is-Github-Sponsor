@@ -89,3 +89,17 @@ Set the following AppSetting keys in the Azure portal for this function or local
 }
 ```
 
+### GitHub Token
+The requested token for a user needs the following scopes
+
+* `read:user`
+* `read:org`
+
+### VSCode Extension Authors
+With the release of VSCode 1.48+ the VSCode extension APIs allow you to request a token on behalf of your extension & VSCode will deal with the OAuth flow for you.
+https://code.visualstudio.com/updates/v1_48#_using-authentication-providers
+
+Check out the VSCode samples repository for usage
+https://github.com/microsoft/vscode-extension-samples/tree/master/github-authentication-sample
+
+Once you have retrieved a token for a user authenticated to GitHub, you would then be able to make a HTTP request to the Azure Function with the token that VSCode gives back to you through its APIs.
