@@ -84,7 +84,8 @@ Set the following AppSetting keys in the Azure portal for this function or local
     "AzureWebJobsStorage": "",
     "FUNCTIONS_WORKER_RUNTIME": "node",
     "GITHUB_SPONSOR_USER_TO_VERIFY": "warrenbuckley",
-    "GITHUB_ORG_TO_VERIFY": "umbraco"
+    "GITHUB_ORG_TO_VERIFY": "umbraco",
+    "GITHUB_REPO_HAS_CONTRIBS": "warrenbuckley/iis-express-code"
   }
 }
 ```
