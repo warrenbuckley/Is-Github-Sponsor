@@ -103,4 +103,4 @@ https://code.visualstudio.com/updates/v1_48#_using-authentication-providers
 Check out the VSCode samples repository for usage
 https://github.com/microsoft/vscode-extension-samples/tree/master/github-authentication-sample
 
-Once you have retrieved a token for a user authenticated to GitHub, you would then be able to make a HTTP request to the Azure Function with the token that VSCode gives back to you through its APIs.
+Once you have retrieved a token for a user authenticated to GitHub, you would then be able to make a HTTP request to the Azure Function with the token that VSCode gives back to you through its APIs. 
