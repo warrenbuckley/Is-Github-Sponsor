@@ -27,13 +27,19 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
     // This is used to check if the logged in GitHub user has made a contribution to the repo
     const repoToCheckForContribs = process.env.GITHUB_REPO_HAS_CONTRIBS;
 
-    if(userToCheck === undefined || orgToCheck === undefined || repoToCheckForContribs === undefined){
+    // An env variable that are comma separated list of GitHub users to bypass the sponsorware check and give access
+    let bypassedUserList = process.env.GITHUB_BYPASSED_USERS;
+
+    if(userToCheck === undefined || orgToCheck === undefined || repoToCheckForContribs === undefined || bypassedUserList === undefined){
       context.res = {
         status: 400,
-        body: "Please ensure environment variables 'GITHUB_SPONSOR_USER_TO_VERIFY' & 'GITHUB_ORG_TO_VERIFY' & 'GITHUB_REPO_HAS_CONTRIBS' are set"
+        body: "Please ensure environment variables 'GITHUB_SPONSOR_USER_TO_VERIFY' & 'GITHUB_ORG_TO_VERIFY' & 'GITHUB_REPO_HAS_CONTRIBS' & 'GITHUB_BYPASSED_USERS' are set"
       };
       context.done();
     }
+
+    // Split the CSV string into a proper array of strings
+    let bypassedUsers = bypassedUserList.split(",");
 
     // Get user token from the HTTP POST or GET
     const userToken = (req.query.token || (req.body && req.body.token));
@@ -173,10 +179,18 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
         context.log.warn("The number of repos in the array does not match the total expected from query");
       }
 
+      // Check for bypassed users
+      let isBypassedUser = bypassedUsers.findIndex(user => user.toLocaleLowerCase() === login.toLocaleLowerCase()) > 0;
+
       // Is the user yourself ?
       const isYourself = login.toLocaleLowerCase() === userToCheck;
       if(isYourself){
         context.log.info(`The user ${login} is yourself`);
+        isSponsor = true;
+      }
+
+      else if(isBypassedUser){
+        context.log.info(`The user ${login} is in the list of bypassed users`);
         isSponsor = true;
       }
 
