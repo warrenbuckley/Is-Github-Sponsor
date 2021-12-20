@@ -74,6 +74,7 @@ Set the following AppSetting keys in the Azure portal for this function or local
 |GITHUB_SPONSOR_USER_TO_VERIFY|The username on GitHub you wish to check if the current logged in user is a sponsoring|warrenbuckley
 |GITHUB_ORG_TO_VERIFY|A Github organization username you wish to allow all members of to be valid sponsors|umbraco
 |GITHUB_REPO_HAS_CONTRIBS|A Github repo to check if the user has made a contribution to verify as being a valid sponsor|warrenbuckley/iis-express-code
+|GITHUB_BYPASSED_USERS|A CSV list of GitHub usernames that can bypass the sponsorware check|warrenbuckley,CastellanSystems,SomeOtherUser
 
 
 #### local.settings.json
@@ -85,7 +86,8 @@ Set the following AppSetting keys in the Azure portal for this function or local
     "FUNCTIONS_WORKER_RUNTIME": "node",
     "GITHUB_SPONSOR_USER_TO_VERIFY": "warrenbuckley",
     "GITHUB_ORG_TO_VERIFY": "umbraco",
-    "GITHUB_REPO_HAS_CONTRIBS": "warrenbuckley/iis-express-code"
+    "GITHUB_REPO_HAS_CONTRIBS": "warrenbuckley/iis-express-code",
+    "GITHUB_BYPASSED_USERS": "john_john,CastellanSystems,FooBar2"
   }
 }
 ```

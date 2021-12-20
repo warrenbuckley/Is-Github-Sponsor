@@ -180,17 +180,17 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
       }
 
       // Check for bypassed users
-      let isBypassedUser = bypassedUsers.findIndex(user => user.toLocaleLowerCase() === login.toLocaleLowerCase()) > 0;
-
-      // Is the user yourself ?
+      const isBypassedUser = bypassedUsers.findIndex(user => user.toLocaleLowerCase() === login.toLocaleLowerCase()) > 0;     
       const isYourself = login.toLocaleLowerCase() === userToCheck;
-      if(isYourself){
-        context.log.info(`The user ${login} is yourself`);
+
+      if(isBypassedUser){
+        context.log.info(`The user ${login} is in the list of bypassed users`);
         isSponsor = true;
       }
 
-      else if(isBypassedUser){
-        context.log.info(`The user ${login} is in the list of bypassed users`);
+      // Is the user yourself ?
+      else if(isYourself){
+        context.log.info(`The user ${login} is yourself`);
         isSponsor = true;
       }
 
